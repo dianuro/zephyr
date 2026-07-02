@@ -8,6 +8,7 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // 处理 CLI 参数：如果提供了文件路径，在页面加载后打开
             let args: Vec<String> = std::env::args().collect();
@@ -31,6 +32,7 @@ pub fn run() {
             commands::file::read_file_content,
             commands::parse::render_markdown,
             commands::search::search_in_document,
+        commands::file::select_markdown_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

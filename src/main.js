@@ -5,21 +5,15 @@ import { initSearch } from './components/search.js';
 import { initTheme } from './components/theme.js';
 
 async function init() {
-  // 初始化各组件
   initSidebar();
   initSearch();
   initTheme();
 
-  // 拖拽支持
-  setupDragDrop();
-
-  // 文件变化监听
+  setupNativeDragDrop();
   setupFileWatcher();
-
-  // CLI 参数支持
   handleCliArgs();
 
-  // 显示侧边栏快捷键
+  // 快捷键：Ctrl+\ 切换侧边栏
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
       e.preventDefault();
@@ -30,7 +24,29 @@ async function init() {
   console.log('Zephyr 已启动');
 }
 
-function setupDragDrop() {
+function setupNativeDragDrop() {
+  // 使用 Tauri 2 原生拖拽事件（能得到文件路径）
+  if (window.__TAURI__) {
+    const { listen } = window.__TAURI__.event;
+    listen('tauri://drag-drop', async (event) => {
+      const payload = event.payload;
+      // Tauri 2 drag-drop payload: { type: 'over' | 'drop', paths: string[] }
+      if (payload && payload.type === 'drop' && payload.paths) {
+        for (const path of payload.paths) {
+          if (path.endsWith('.md') || path.endsWith('.markdown')) {
+            await openFile(path);
+            return;
+          }
+        }
+      }
+    });
+  }
+
+  // 额外保留 HTML5 拖拽作为备选
+  setupHtmlDragDrop();
+}
+
+function setupHtmlDragDrop() {
   document.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -41,20 +57,21 @@ function setupDragDrop() {
     const files = Array.from(e.dataTransfer.files);
     const mdFile = files.find(f => f.name.endsWith('.md') || f.name.endsWith('.markdown'));
 
-    if (mdFile) {
-      // 在 Tauri 中，拖拽的文件可以通过 path 属性获取路径
-      const path = mdFile.path;
-      if (path) {
-        await openFile(path);
-      } else {
-        // 在浏览器中运行时，读取文件内容并调用渲染
-        const reader = new FileReader();
-        reader.onload = async (evt) => {
-          const content = evt.target.result;
+    if (!mdFile) return;
+
+    // 在 Tauri 中，拖拽的 File 可能有 path 属性（某些 WebKit 版本）
+    const path = mdFile.path || mdFile.webkitRelativePath;
+    if (path) {
+      await openFile(path);
+    } else {
+      // 纯浏览器环境：通过 FileReader 读取并调用 Rust 渲染
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const content = evt.target?.result;
+        if (typeof content === 'string') {
           try {
             const { invoke } = window.__TAURI__.core;
             const result = await invoke('render_markdown', { content });
-            // 设置状态
             state.currentFile = mdFile.name;
             state.currentHtml = result.html;
             state.metadata = result.metadata;
@@ -67,9 +84,9 @@ function setupDragDrop() {
           } catch (err) {
             console.error('渲染失败:', err);
           }
-        };
-        reader.readAsText(mdFile);
-      }
+        }
+      };
+      reader.readAsText(mdFile);
     }
   });
 }
@@ -80,7 +97,6 @@ function setupFileWatcher() {
     listen('file-changed', async (event) => {
       const path = event.payload;
       if (path === state.currentFile) {
-        // 自动重新加载（在 Tauri 中，使用 confirm 会阻塞）
         console.log('文件已修改，自动重新加载:', path);
         await openFile(path);
       }
@@ -89,19 +105,17 @@ function setupFileWatcher() {
 }
 
 function handleCliArgs() {
-  // 检查从 Rust 端传递的 CLI 参数
-  if (window.__ZEPHYR_CLI_FILE__) {
-    // 延迟到页面完全加载后打开
-    setTimeout(async () => {
+  // 等待页面加载，然后检查 CLI 参数
+  setTimeout(async () => {
+    if (window.__ZEPHYR_CLI_FILE__) {
       const path = window.__ZEPHYR_CLI_FILE__;
       if (path) {
         await openFile(path);
       }
-    }, 500);
-  }
+    }
+  }, 500);
 }
 
-// 等待 DOM 加载
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

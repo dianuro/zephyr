@@ -23,42 +23,60 @@ function switchTab(tab) {
   document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
   document.getElementById(`${tab}-panel`).classList.add('active');
 
-  // 切换到文件标签时自动刷新文件树
   if (tab === 'files' && state.currentFile) {
     refreshFileTree();
   }
 }
 
-function openFileDialog() {
+async function openFileDialog() {
+  try {
+    const { invoke } = window.__TAURI__.core;
+    const path = await invoke('select_markdown_file');
+    if (path) {
+      await openFile(path);
+    }
+  } catch (e) {
+    console.error('打开文件对话框失败:', e);
+    // 回退：尝试使用 HTML 文件输入
+    fallbackFileInput();
+  }
+}
+
+function fallbackFileInput() {
+  // 在标准浏览器环境中，通过 FileReader 提供基础支持
   const input = document.getElementById('file-input');
+  if (!input) return;
+
+  input.value = '';
   input.click();
   input.onchange = async () => {
-    const file = input.files[0];
+    const file = input.files?.[0];
     if (file) {
-      // 需要文件路径来调用 Rust 命令
-      // 拖拽会提供路径，但文件选择器只提供 File 对象（不含路径）
-      // 对于 Tauri，需要通过 dialog 插件或拖拽
-      // fallback: 使用 Tauri API
-      openFileViaTauriDialog();
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const content = evt.target?.result;
+        if (typeof content === 'string') {
+          try {
+            const { invoke } = window.__TAURI__.core;
+            const result = await invoke('render_markdown', { content });
+            state.currentFile = file.name;
+            state.currentHtml = result.html;
+            state.metadata = result.metadata;
+            document.getElementById('file-title').textContent = file.name;
+            document.title = `${file.name} — Zephyr`;
+            document.getElementById('welcome').classList.add('hidden');
+            const contentEl = document.getElementById('content');
+            contentEl.classList.remove('hidden');
+            contentEl.innerHTML = result.html;
+          } catch (err) {
+            console.error('渲染失败:', err);
+          }
+        }
+      };
+      reader.readAsText(file);
     }
     input.value = '';
   };
-}
-
-async function openFileViaTauriDialog() {
-  try {
-    const { open } = await import('https://cdn.jsdelivr.net/npm/@tauri-apps/plugin-dialog@2/+esm');
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
-    });
-    if (selected) {
-      await openFile(selected);
-    }
-  } catch (e) {
-    console.warn('Tauri dialog 不可用，尝试使用前端文件读取作为回退', e);
-    // 回退：使用 FileReader 读取最近选择的文件（仅当通过拖拽获得路径时有效）
-  }
 }
 
 export function renderFileTree(tree) {
@@ -102,7 +120,6 @@ async function refreshFileTree() {
     const { invoke } = window.__TAURI__.core;
     const tree = await invoke('get_file_tree', { path: state.currentFile });
     state.fileTree = tree;
-    // 只在文件标签页可见时更新
     if (document.querySelector('.tab-btn[data-tab="files"].active')) {
       renderFileTree(tree);
     }

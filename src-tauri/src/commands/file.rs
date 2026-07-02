@@ -116,6 +116,19 @@ pub fn read_file_content(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| format!("无法读取文件: {}", e))
 }
 
+/// 打开原生文件选择对话框，返回所选文件路径
+#[tauri::command]
+pub async fn select_markdown_file(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let file = app
+        .dialog()
+        .file()
+        .add_filter("Markdown", &["md", "markdown"])
+        .blocking_pick_file();
+    // FilePath 是枚举，Path 变体包含 PathBuf
+    Ok(file.and_then(|f| f.as_path().map(|p| p.to_string_lossy().to_string())))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
