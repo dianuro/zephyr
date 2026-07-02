@@ -1,39 +1,61 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/main.js" defer></script>
+    <title>Zephyr</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="main.js" defer></script>
   </head>
-
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+    <div id="app">
+      <aside id="sidebar" class="sidebar hidden">
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="files">文件</button>
+          <button class="tab-btn" data-tab="outline">大纲</button>
+        </div>
+        <div id="files-panel" class="sidebar-panel active">
+          <div id="file-tree"></div>
+        </div>
+        <div id="outline-panel" class="sidebar-panel">
+          <div id="outline-tree"></div>
+        </div>
+      </aside>
 
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+      <main id="main-content">
+        <header id="toolbar">
+          <div class="toolbar-left">
+            <button id="toggle-sidebar" title="切换侧边栏">☰</button>
+            <input type="file" id="file-input" accept=".md,.markdown" style="display:none" />
+            <button id="open-file" title="打开文件">📂</button>
+            <span id="file-title" class="file-title"></span>
+          </div>
+          <div class="toolbar-right">
+            <button id="toggle-search" title="搜索 (Ctrl+F)">🔍</button>
+            <button id="toggle-theme" title="切换主题">🌙</button>
+          </div>
+        </header>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
+        <div id="search-bar" class="search-bar hidden">
+          <input type="text" id="search-input" placeholder="在文档中搜索…" />
+          <span id="search-count"></span>
+          <button id="search-prev" title="上一个">▲</button>
+          <button id="search-next" title="下一个">▼</button>
+          <button id="search-close" title="关闭">✕</button>
+        </div>
+
+        <div id="content" class="markdown-body markdown-body-content"></div>
+
+        <div id="welcome" class="welcome">
+          <div class="welcome-content">
+            <h1>Zephyr</h1>
+            <p>高速 Markdown 阅读器</p>
+            <p class="welcome-hint">拖拽 Markdown 文件到窗口，或点击 📂 打开</p>
+          </div>
+        </div>
+      </main>
+    </div>
   </body>
 </html>
