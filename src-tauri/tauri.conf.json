@@ -10,9 +10,11 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "zephyr",
-        "width": 800,
-        "height": 600
+        "title": "Zephyr",
+        "width": 1100,
+        "height": 750,
+        "minWidth": 600,
+        "minHeight": 400
       }
     ],
     "security": {
