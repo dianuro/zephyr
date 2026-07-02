@@ -1,6 +1,15 @@
 import state from '../state.js';
 import { openFile } from './viewer.js';
 
+const FOLDER_SVG = `<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" stroke="none">
+  <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3l1.5 1.5h5A1.5 1.5 0 0 1 13.5 5v6a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 .5 10V5.5z"/>
+</svg>`;
+
+const FILE_SVG = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+  <path d="M2.5.5h5l4 4v9a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z"/>
+  <polyline points="7.5.5 7.5 4.5 11.5 4.5"/>
+</svg>`;
+
 export function initSidebar() {
   document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
   document.getElementById('open-file').addEventListener('click', openFileDialog);
@@ -95,7 +104,7 @@ export function renderFileTree(tree) {
 
     if (entry.is_dir) {
       el.classList.add('dir');
-      el.innerHTML = `<span class="icon">📁</span>${escapeHtml(entry.name)}`;
+      el.innerHTML = `<span class="file-icon folder-icon">${FOLDER_SVG}</span>${escapeHtml(entry.name)}`;
       el.addEventListener('click', async () => {
         try {
           const { invoke } = window.__TAURI__.core;
@@ -106,7 +115,7 @@ export function renderFileTree(tree) {
         }
       });
     } else if (entry.is_markdown) {
-      el.innerHTML = `<span class="icon">📄</span>${escapeHtml(entry.name)}`;
+      el.innerHTML = `<span class="file-icon">${FILE_SVG}</span>${escapeHtml(entry.name)}`;
       el.addEventListener('click', () => openFile(entry.path));
     }
 
