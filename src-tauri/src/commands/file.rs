@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::fs;
 use std::path::Path;
 
-use crate::parser::markdown;
+use crate::parser::markdown::{self, MarkdownResult};
 
 /// 应用状态，包含 Markdown 解析器
 pub struct AppState {
