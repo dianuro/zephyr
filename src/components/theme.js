@@ -20,6 +20,9 @@ const MOON_SVG = `<svg id="theme-icon" width="18" height="18" viewBox="0 0 18 18
   <path d="M14.5 11.5A6 6 0 0 1 6.5 3.5a6 6 0 1 0 8 8z"/>
 </svg>`;
 
+const MD_LIGHT_CSS = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.css';
+const MD_DARK_CSS = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown-dark.css';
+
 export function initTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === 'dark') {
@@ -38,5 +41,13 @@ function toggleTheme() {
 function setDark(dark) {
   state.darkMode = dark;
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+
+  // 切换 markdown 内容区的样式表
+  const mdLink = document.getElementById('md-theme-css');
+  if (mdLink) {
+    mdLink.href = dark ? MD_DARK_CSS : MD_LIGHT_CSS;
+  }
+
+  // 更新主题图标
   document.getElementById('theme-icon').outerHTML = dark ? SUN_SVG : MOON_SVG;
 }

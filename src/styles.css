@@ -1,23 +1,26 @@
 /* =========== CSS 变量 & 主题 =========== */
+/* 颜色值取自 github-markdown-css v5.5.1 (Primer 设计系统) */
 :root,
 [data-theme="light"] {
   --bg-primary: #ffffff;
   --bg-secondary: #f6f8fa;
-  --bg-sidebar: #fafbfc;
+  --bg-sidebar: #f6f8fa;
   --bg-toolbar: #ffffff;
-  --bg-hover: #edeff2;
+  --bg-hover: #eaeef2;
   --bg-content: #ffffff;
-  --text-primary: #1f2328;
-  --text-secondary: #59636e;
-  --text-muted: #656d76;
+  --text-primary: #1F2328;
+  --text-secondary: #656d76;
+  --text-muted: #6e7781;
   --border-color: #d0d7de;
+  --border-muted: #d8dee4;
   --accent: #0969da;
   --accent-hover: #0550ae;
   --toolbar-height: 48px;
   --sidebar-width: 280px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --search-highlight-bg: #fff3cd;
-  --search-active-bg: #ffc107;
+  --search-highlight-bg: #fff8c5;
+  --search-active-bg: #f5e6a3;
+  --color-neutral-muted: rgba(175,184,193,0.2);
 }
 
 [data-theme="dark"] {
@@ -25,17 +28,19 @@
   --bg-secondary: #161b22;
   --bg-sidebar: #161b22;
   --bg-toolbar: #161b22;
-  --bg-hover: #21262d;
+  --bg-hover: #1c2128;
   --bg-content: #0d1117;
-  --text-primary: #f0f6fc;
-  --text-secondary: #9198a1;
+  --text-primary: #e6edf3;
+  --text-secondary: #848d97;
   --text-muted: #6e7681;
   --border-color: #30363d;
-  --accent: #58a6ff;
-  --accent-hover: #79c0ff;
+  --border-muted: #21262d;
+  --accent: #2f81f7;
+  --accent-hover: #58a6ff;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --search-highlight-bg: #3b2f0a;
-  --search-active-bg: #b8860b;
+  --search-highlight-bg: rgba(187,128,9,0.15);
+  --search-active-bg: rgba(187,128,9,0.4);
+  --color-neutral-muted: rgba(110,118,129,0.4);
 }
 
 /* =========== 全局 =========== */
@@ -209,6 +214,18 @@ body {
   gap: 2px;
 }
 
+#file-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 8px;
+  color: var(--text-primary);
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========== 图标按钮 =========== */
 .icon-btn {
   background: none;
   border: 1px solid transparent;
@@ -247,17 +264,6 @@ body {
   color: var(--text-primary);
 }
 
-.file-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin-left: 8px;
-  color: var(--text-primary);
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* =========== 搜索栏 =========== */
 .search-bar {
   display: flex;
@@ -290,7 +296,7 @@ body {
 }
 
 [data-theme="dark"] #search-input:focus {
-  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(47, 129, 247, 0.2);
 }
 
 #search-count {
@@ -299,21 +305,6 @@ body {
   min-width: 80px;
   text-align: center;
   white-space: nowrap;
-}
-
-.search-bar button {
-  background: none;
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.search-bar button:hover {
-  background: var(--bg-hover);
 }
 
 /* =========== 内容区 =========== */
@@ -335,7 +326,6 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  color: var(--text-muted);
   text-align: center;
   padding: 40px;
 }
@@ -348,12 +338,13 @@ body {
   font-size: 36px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .welcome-content p {
   font-size: 16px;
   line-height: 1.6;
+  color: var(--text-secondary);
 }
 
 .welcome-hint {
@@ -371,18 +362,13 @@ body {
 
 .search-highlight.active {
   background: var(--search-active-bg);
-  color: #000;
-}
-
-[data-theme="dark"] .search-highlight.active {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 /* =========== 错误提示 =========== */
 .error-message {
   text-align: center;
   padding: 60px 20px;
-  color: var(--text-secondary);
 }
 
 .error-message .error-icon {
@@ -428,13 +414,4 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
-}
-
-/* =========== 编辑器语法高亮覆盖（深色主题） =========== */
-[data-theme="dark"] .markdown-body-content pre {
-  background-color: #161b22 !important;
-}
-
-[data-theme="dark"] .markdown-body-content code {
-  background-color: rgba(110, 118, 129, 0.4);
 }
