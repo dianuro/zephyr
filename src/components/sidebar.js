@@ -95,10 +95,27 @@ function fallbackFileInput() {
 
 // ====== 文件树 ======
 
-/** 以 rootPath 为根重建树 */
-export async function buildFileTree(rootPath) {
+/** 提取路径的父目录部分 */
+function parentDir(filePath) {
+  const normalized = filePath.replace(/\\/g, '/');
+  const idx = normalized.lastIndexOf('/');
+  if (idx === -1) return '.';
+  return normalized.substring(0, idx) || '/';
+}
+
+/** 从路径中提取文件名/目录名 */
+function baseName(filePath) {
+  const normalized = filePath.replace(/\\/g, '/');
+  const idx = normalized.lastIndexOf('/');
+  if (idx === -1) return filePath;
+  return normalized.substring(idx + 1) || filePath;
+}
+
+/** 以 filePath 所在目录为根重建文件树 */
+export async function buildFileTree(filePath) {
   nodes.clear();
-  const key = await ensureChildren(rootPath, null);
+  const dirPath = parentDir(filePath);
+  const key = await ensureChildren(dirPath, null);
   renderTree();
   return key;
 }
@@ -115,12 +132,9 @@ async function ensureChildren(path, parentKey) {
 
     // 创建或更新节点
     if (!nodes.has(key)) {
-      // 从路径推断名称
-      const parts = path.replace(/\\/g, '/').split('/').filter(Boolean);
-      const name = parts[parts.length - 1] || path;
       nodes.set(key, {
         key,
-        name,
+        name: baseName(path),
         path,
         isDir: true,
         expanded: parentKey === null, // 根节点默认展开
@@ -131,11 +145,14 @@ async function ensureChildren(path, parentKey) {
     }
 
     const node = nodes.get(key);
+    const prevChildren = node.children || [];
     node.children = [];
     node.loaded = true;
 
     for (const entry of entries) {
       const childKey = pathToKey(entry.path);
+      // 防止自引用：跳过与当前节点同路径的条目
+      if (childKey === key) continue;
       if (!nodes.has(childKey)) {
         nodes.set(childKey, {
           key: childKey,
@@ -154,12 +171,15 @@ async function ensureChildren(path, parentKey) {
     return key;
   } catch (e) {
     console.warn('读取目录失败:', e);
+    // 标记为已加载（即使失败）避免重复尝试
+    if (nodes.has(key)) {
+      nodes.get(key).loaded = true;
+    }
     return key;
   }
 }
 
 function pathToKey(p) {
-  // 统一路径分隔符
   return p.replace(/\\/g, '/');
 }
 
@@ -181,7 +201,6 @@ function renderTree() {
   const container = document.getElementById('file-tree');
   container.innerHTML = '';
 
-  // 找到根节点（parentKey 为 null 的节点）
   const roots = [];
   for (const [, node] of nodes) {
     if (node.parentKey === null) {
@@ -199,8 +218,14 @@ function renderTree() {
   }
 }
 
-/** 递归渲染一个节点及其子节点 */
+/** 递归渲染一个节点及其子节点（depth 上限防无限递归） */
 function renderNode(key, depth, parentEl) {
+  // 安全上限，防止意外循环
+  if (depth > 50) {
+    console.warn('树深度超过 50 层，停止渲染');
+    return;
+  }
+
   const node = nodes.get(key);
   if (!node) return;
 
@@ -211,14 +236,13 @@ function renderNode(key, depth, parentEl) {
     item.classList.add('active');
   }
 
-  // 缩进
   item.style.paddingLeft = `${8 + depth * 16}px`;
 
-  // 箭头（仅目录）
   if (node.isDir) {
     const arrow = document.createElement('span');
     arrow.className = 'tree-arrow';
-    arrow.innerHTML = node.children && node.children.length > 0
+    const hasChildren = node.children && node.children.length > 0;
+    arrow.innerHTML = hasChildren
       ? (node.expanded ? CHEVRON_DOWN : CHEVRON_RIGHT)
       : '<span class="tree-arrow-spacer"></span>';
     item.appendChild(arrow);
@@ -228,27 +252,22 @@ function renderNode(key, depth, parentEl) {
       toggleDir(key);
     });
   } else {
-    // 文件缩进占位
     const spacer = document.createElement('span');
     spacer.className = 'tree-arrow-spacer';
-    spacer.style.width = '16px';
     spacer.style.display = 'inline-block';
     item.appendChild(spacer);
   }
 
-  // 图标
   const icon = document.createElement('span');
   icon.className = 'tree-icon';
   icon.innerHTML = node.isDir ? FOLDER_SVG : FILE_SVG;
   item.appendChild(icon);
 
-  // 名称
   const nameSpan = document.createElement('span');
   nameSpan.className = 'tree-name';
   nameSpan.textContent = node.name;
   item.appendChild(nameSpan);
 
-  // 点击行为
   item.addEventListener('click', () => {
     if (node.isDir) {
       toggleDir(key);
