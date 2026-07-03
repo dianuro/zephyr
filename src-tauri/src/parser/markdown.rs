@@ -56,9 +56,7 @@ pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {
     // 注意：这里直接使用默认值，完整方案需要将 config 传入
     // 对于 CLI 启动的场景，从配置目录读取
     let theme_name = get_syntax_theme(is_dark);
-    let syntax_highlighter = SyntectAdapterBuilder::new()
-        .theme(&theme_name)
-        .build();
+    let syntax_highlighter = SyntectAdapterBuilder::new().theme(&theme_name).build();
 
     let mut plugins = Plugins::default();
     plugins.render.codefence_syntax_highlighter = Some(&syntax_highlighter);
@@ -68,16 +66,12 @@ pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {
     // 提取标题结构（与 comrak 共享 ID 跟踪，确保 DOM ID 一致）
     let mut used_ids = HashSet::new();
     let headings = extract_headings(root, &mut used_ids);
-    let title = headings
-        .first()
-        .map(|h| h.text.clone())
-        .unwrap_or_default();
+    let title = headings.first().map(|h| h.text.clone()).unwrap_or_default();
     let word_count = count_words(markdown);
 
     // 格式化 HTML
     let mut html_buf = Vec::new();
-    format_html_with_plugins(root, &options, &mut html_buf, &plugins)
-        .expect("HTML 格式化失败");
+    format_html_with_plugins(root, &options, &mut html_buf, &plugins).expect("HTML 格式化失败");
     let html = String::from_utf8(html_buf).expect("HTML 不是合法 UTF-8");
 
     MarkdownResult {
@@ -194,8 +188,7 @@ fn count_words(text: &str) -> u32 {
 /// 生成与 comrak Anchorizer::anchorize 完全一致的 anchor ID
 fn anchorize_id(text: &str, used: &mut HashSet<String>) -> String {
     static RE: OnceLock<Regex> = OnceLock::new();
-    let rejected_chars =
-        RE.get_or_init(|| Regex::new(r"[^\p{L}\p{M}\p{N}\p{Pc} -]").unwrap());
+    let rejected_chars = RE.get_or_init(|| Regex::new(r"[^\p{L}\p{M}\p{N}\p{Pc} -]").unwrap());
 
     // 必须与 comrak Anchorizer::anchorize 算法完全一致：
     // 1. 转小写

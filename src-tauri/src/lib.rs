@@ -1,7 +1,7 @@
 mod commands;
 mod parser;
-pub(crate) mod watcher;
 mod theme_config;
+pub(crate) mod watcher;
 
 use crate::watcher::FileWatcher;
 use serde_json::json;
@@ -45,7 +45,7 @@ pub fn run() {
                 let raw_path = &args[1];
                 if let Some(window) = app.get_webview_window("main") {
                     let escaped_path = raw_path.replace('\\', "\\\\").replace('\'', "\\'");
-                    let _ = window.eval(&format!(
+                    let _ = window.eval(format!(
                         "setTimeout(() => window.__ZEPHYR_CLI_FILE__ = '{}', 100);",
                         escaped_path
                     ));

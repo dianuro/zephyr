@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 
 /// UI 颜色配置（亮色或暗色）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -153,15 +153,13 @@ pub fn default_dark() -> ThemeConfig {
 fn load_or_create(path: &PathBuf, default: ThemeConfig) -> ThemeConfig {
     if path.exists() {
         match fs::read_to_string(path) {
-            Ok(content) => {
-                match toml::from_str::<ThemeConfig>(&content) {
-                    Ok(config) => config,
-                    Err(e) => {
-                        eprintln!("配置文件 {} 解析失败: {}，使用默认值", path.display(), e);
-                        default
-                    }
+            Ok(content) => match toml::from_str::<ThemeConfig>(&content) {
+                Ok(config) => config,
+                Err(e) => {
+                    eprintln!("配置文件 {} 解析失败: {}，使用默认值", path.display(), e);
+                    default
                 }
-            }
+            },
             Err(e) => {
                 eprintln!("配置文件 {} 读取失败: {}，使用默认值", path.display(), e);
                 default
@@ -177,7 +175,11 @@ fn load_or_create(path: &PathBuf, default: ThemeConfig) -> ThemeConfig {
         let comment = format!(
             "# Zephyr {} 主题配置\n\
              # 修改后重启应用生效\n\n",
-            if path.to_string_lossy().contains("light") { "亮色" } else { "暗色" }
+            if path.to_string_lossy().contains("light") {
+                "亮色"
+            } else {
+                "暗色"
+            }
         );
         match fs::write(path, comment + &toml_str) {
             Ok(_) => eprintln!("已生成默认配置文件: {}", path.display()),

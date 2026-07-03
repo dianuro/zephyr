@@ -117,8 +117,7 @@ pub fn open_directory(path: String) -> Result<FileTree, String> {
             }
 
             let is_dir = entry_path.is_dir();
-            let is_md = !is_dir
-                && (name.ends_with(".md") || name.ends_with(".markdown"));
+            let is_md = !is_dir && (name.ends_with(".md") || name.ends_with(".markdown"));
 
             let fe = FileEntry {
                 name,
@@ -138,9 +137,9 @@ pub fn open_directory(path: String) -> Result<FileTree, String> {
     }
 
     // 排序：目录 > Markdown 文件 > 其他文件，各组内按名称排序
-    dirs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    md_files.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    other_files.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    dirs.sort_by_key(|a| a.name.to_lowercase());
+    md_files.sort_by_key(|a| a.name.to_lowercase());
+    other_files.sort_by_key(|a| a.name.to_lowercase());
 
     entries.extend(dirs);
     entries.extend(md_files);

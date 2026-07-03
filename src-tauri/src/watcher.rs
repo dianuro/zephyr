@@ -69,10 +69,8 @@ impl FileWatcher {
 
                 match event_rx.recv_timeout(Duration::from_millis(500)) {
                     Ok(Ok(event)) => {
-                        let is_modify = matches!(
-                            event.kind,
-                            EventKind::Modify(_) | EventKind::Create(_)
-                        );
+                        let is_modify =
+                            matches!(event.kind, EventKind::Modify(_) | EventKind::Create(_));
 
                         if !is_modify {
                             continue;

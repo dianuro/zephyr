@@ -16,8 +16,7 @@ pub fn search_in_document(content: String, query: String) -> Result<Vec<SearchMa
         return Ok(Vec::new());
     }
 
-    let re = Regex::new(&regex::escape(&query))
-        .map_err(|e| format!("搜索表达式错误: {}", e))?;
+    let re = Regex::new(&regex::escape(&query)).map_err(|e| format!("搜索表达式错误: {}", e))?;
 
     let mut results = Vec::new();
     for (line_num, line) in content.lines().enumerate() {
