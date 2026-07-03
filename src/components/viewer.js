@@ -123,3 +123,42 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+// ====== 外部链接处理 ======
+
+/** 初始化外部链接拦截（事件委托，只绑一次） */
+export function initExternalLinks() {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  content.addEventListener('click', (e) => {
+    // 向上查找 <a> 标签
+    let target = e.target;
+    while (target && target !== content) {
+      if (target.tagName === 'A' && target.href) {
+        const href = target.getAttribute('href');
+        // 只处理 http/https 外部链接
+        if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+          e.preventDefault();
+          e.stopPropagation();
+          openInBrowser(href);
+          return;
+        }
+        // 其他链接（#锚点、相对路径等）让默认行为处理
+        break;
+      }
+      target = target.parentElement;
+    }
+  });
+}
+
+async function openInBrowser(url) {
+  try {
+    const { invoke } = window.__TAURI__.core;
+    await invoke('plugin:opener|open_url', { url });
+  } catch (e) {
+    console.warn('打开外部链接失败:', e);
+    // 回退：使用 window.open
+    window.open(url, '_blank');
+  }
+}

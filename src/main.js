@@ -1,6 +1,6 @@
 import state from './state.js';
 import { initSidebar, toggleSidebar } from './components/sidebar.js';
-import { openFile } from './components/viewer.js';
+import { openFile, initExternalLinks } from './components/viewer.js';
 import { initSearch } from './components/search.js';
 import { initTheme } from './components/theme.js';
 
@@ -12,6 +12,7 @@ async function init() {
   setupNativeDragDrop();
   setupFileWatcher();
   setupWindowControls();
+  initExternalLinks();
   handleCliArgs();
 
   // 快捷键：Ctrl+\ 切换侧边栏
