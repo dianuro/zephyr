@@ -43,8 +43,8 @@ Zephyr 是一个用 **Tauri 2 + Rust + Vanilla JS** 构建的高速 Markdown 阅
 ### 启动
 
 ```bash
-# 安装 Tauri CLI
-npm install -g @tauri-apps/cli
+# 安装 Tauri 2 CLI
+cargo install tauri-cli --version "^2" --locked
 
 # 进入项目目录
 cd zephyr
