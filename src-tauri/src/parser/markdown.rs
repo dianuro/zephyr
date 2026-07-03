@@ -308,5 +308,3 @@ mod tests {
         assert!(result.html.contains("footnote") || result.html.contains("sup"));
     }
 }
-
-

@@ -488,6 +488,46 @@ body {
   background-color: rgba(175,184,193,0.2);
 }
 
+/* =========== 代码块复制按钮 =========== */
+
+.copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-content, #fff);
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted, #656d76);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  padding: 0;
+  z-index: 1;
+  line-height: 1;
+}
+
+pre:hover .copy-btn,
+.copy-btn:focus {
+  opacity: 1;
+}
+
+.copy-btn:hover {
+  color: var(--text-primary, #1F2328);
+  border-color: var(--accent, #0969da);
+  background: var(--bg-hover, #f3f4f6);
+}
+
+.copy-btn.copied {
+  opacity: 1;
+  color: #1a7f37;
+  border-color: #1a7f37;
+}
+
 /* =========== 滚动条 =========== */
 ::-webkit-scrollbar {
   width: 8px;

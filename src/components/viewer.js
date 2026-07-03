@@ -24,9 +24,10 @@ export async function openFile(path) {
     contentEl.classList.remove('hidden');
     contentEl.innerHTML = result.html;
 
-    // 后处理：KaTeX + Mermaid
+    // 后处理：KaTeX + Mermaid + 复制按钮
     await renderMath();
     renderDiagrams();
+    setupCopyButtons();
 
     // 更新侧边栏
     renderOutline(result.metadata.headings);
@@ -124,6 +125,49 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ====== 代码块复制按钮 ======
+
+function setupCopyButtons() {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  content.querySelectorAll('pre').forEach(pre => {
+    if (pre.querySelector('.copy-btn')) return;
+    pre.style.position = 'relative';
+
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="10" height="10" rx="1.5" fill="none"/>
+      <path d="M5 13V3h8"/>
+    </svg>`;
+    btn.title = '复制代码';
+
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const code = pre.textContent || '';
+      try {
+        await navigator.clipboard.writeText(code);
+        btn.classList.add('copied');
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="2,8 6,12 14,4"/>
+        </svg>`;
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="10" height="10" rx="1.5" fill="none"/>
+            <path d="M5 13V3h8"/>
+          </svg>`;
+        }, 2000);
+      } catch (err) {
+        console.warn('复制失败:', err);
+      }
+    });
+
+    pre.appendChild(btn);
+  });
+}
+
 // ====== 主题切换后重新渲染 ======
 
 /** 切换主题后重新渲染当前文件（刷新 syntect 行内颜色） */
@@ -144,6 +188,7 @@ export async function reloadCurrentFile() {
     renderOutline(result.metadata.headings);
     await renderMath();
     renderDiagrams();
+    setupCopyButtons();
   } catch (e) {
     console.warn('主题切换后重新渲染失败:', e);
   }
