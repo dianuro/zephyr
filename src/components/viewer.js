@@ -1,6 +1,6 @@
 import state from '../state.js';
 import { renderOutline } from './outline.js';
-import { renderFileTree } from './sidebar.js';
+import { buildFileTree } from './sidebar.js';
 
 export async function openFile(path) {
   try {
@@ -30,7 +30,7 @@ export async function openFile(path) {
 
     // 更新侧边栏
     renderOutline(result.metadata.headings);
-    refreshFileTree(path);
+    buildFileTree(path);
 
     // 自动显示侧边栏（如果隐藏）
     if (!state.sidebarVisible) {
@@ -99,17 +99,6 @@ async function renderDiagrams() {
     });
   } catch (e) {
     console.warn('Mermaid 加载失败:', e);
-  }
-}
-
-async function refreshFileTree(path) {
-  try {
-    const { invoke } = window.__TAURI__.core;
-    const tree = await invoke('get_file_tree', { path });
-    state.fileTree = tree.entries || [];
-    renderFileTree(tree);
-  } catch (e) {
-    console.warn('刷新文件树失败:', e);
   }
 }
 

@@ -121,11 +121,17 @@ body {
   display: block;
 }
 
-/* =========== 文件树 =========== */
-.file-item {
+/* =========== 文件树 (VS Code 风格) =========== */
+.tree-empty {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.tree-item {
   display: flex;
   align-items: center;
-  padding: 4px 16px;
+  padding: 2px 8px;
   cursor: pointer;
   font-size: 14px;
   color: var(--text-primary);
@@ -135,31 +141,54 @@ body {
   user-select: none;
 }
 
-.file-item:hover {
+.tree-item:hover {
   background: var(--bg-hover);
 }
 
-.file-item .file-icon {
-  margin-right: 6px;
-  flex-shrink: 0;
+.tree-item.active {
+  background: var(--color-neutral-muted);
+}
+
+.tree-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.tree-arrow:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tree-arrow-spacer {
+  display: inline-block;
+  width: 16px;
+}
+
+.tree-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-right: 4px;
   color: var(--text-muted);
 }
 
-.file-item .file-icon svg {
+.tree-item .tree-icon svg {
   display: block;
 }
 
-.file-item.dir {
-  font-weight: 500;
-}
-
-.file-item.dir .file-icon {
-  color: var(--accent);
+.tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* =========== 大纲树 =========== */
