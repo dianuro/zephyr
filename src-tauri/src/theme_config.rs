@@ -144,7 +144,7 @@ pub fn default_dark() -> ThemeConfig {
             active_bg: "rgba(187,128,9,0.4)".into(),
         },
         syntax: SyntaxColors {
-            theme: "Solarized (dark)".into(),
+            theme: "base16-ocean.dark".into(),
         },
     }
 }
