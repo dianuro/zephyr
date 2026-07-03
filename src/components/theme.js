@@ -20,14 +20,18 @@ const MOON_SVG = `<svg id="theme-icon" width="18" height="18" viewBox="0 0 18 18
   <path d="M14.5 11.5A6 6 0 0 1 6.5 3.5a6 6 0 1 0 8 8z"/>
 </svg>`;
 
-const MD_LIGHT_CSS = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.css';
+// 使用独立 CSS 文件，避免组合版 @media prefers-color-scheme 的干扰
+// github-markdown.css（组合版）会同时匹配系统和应用主题，导致冲突
+// 分开加载确保颜色始终跟随 Zephyr 的主题设置
+const MD_LIGHT_CSS = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown-light.css';
 const MD_DARK_CSS = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown-dark.css';
 
 export function initTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === 'dark') {
-    setDark(true);
-  }
+  const isDark = saved === 'dark';
+  // 始终调用 setDark 确保 CSS 主题文件与 data-theme 一致
+  // 避免组合版 github-markdown.css 中 @media prefers-color-scheme 的干扰
+  setDark(isDark);
 
   document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
 }
