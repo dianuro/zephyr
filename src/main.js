@@ -11,6 +11,7 @@ async function init() {
 
   setupNativeDragDrop();
   setupFileWatcher();
+  setupWindowControls();
   handleCliArgs();
 
   // 快捷键：Ctrl+\ 切换侧边栏
@@ -103,6 +104,36 @@ function setupFileWatcher() {
       }
     });
   }
+}
+
+function setupWindowControls() {
+  if (!window.__TAURI__) return;
+
+  const { getCurrentWindow } = window.__TAURI__.window;
+  const win = getCurrentWindow();
+
+  document.getElementById('win-minimize').addEventListener('click', () => {
+    win.minimize();
+  });
+
+  document.getElementById('win-maximize').addEventListener('click', () => {
+    win.toggleMaximize();
+  });
+
+  document.getElementById('win-close').addEventListener('click', () => {
+    win.close();
+  });
+
+  // 监听窗口大小变化，切换最大化/还原图标
+  win.onResized(async () => {
+    const maximized = await win.isMaximized();
+    const maxIcon = document.getElementById('win-max-icon');
+    const restoreIcon = document.getElementById('win-restore-icon');
+    if (maxIcon && restoreIcon) {
+      maxIcon.style.display = maximized ? 'none' : '';
+      restoreIcon.style.display = maximized ? '' : 'none';
+    }
+  });
 }
 
 function handleCliArgs() {
