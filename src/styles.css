@@ -381,35 +381,20 @@ body {
 /* =========== 欢迎页 =========== */
 #welcome {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1;
   text-align: center;
-  padding: 40px;
 }
 
 #welcome.hidden {
   display: none;
 }
 
-.welcome-content h1 {
-  font-size: 36px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-}
-
-.welcome-content p {
+.welcome-text {
   font-size: 16px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-.welcome-hint {
-  margin-top: 24px;
-  font-size: 14px;
   color: var(--text-muted);
+  user-select: none;
 }
 
 /* =========== 搜索高亮 =========== */
