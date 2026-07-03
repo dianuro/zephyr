@@ -159,7 +159,6 @@ async function ensureChildren(path, parentKey) {
     }
 
     const node = nodes.get(key);
-    const prevChildren = node.children || [];
     node.children = [];
     node.loaded = true;
 
