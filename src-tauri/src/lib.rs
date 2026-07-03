@@ -40,9 +40,20 @@ pub fn run() {
             // 处理 CLI 参数：如果提供了文件路径，在页面加载后打开
             let args: Vec<String> = std::env::args().collect();
             if args.len() > 1 {
-                let path = &args[1];
+                let raw_path = &args[1];
+                // 将相对路径解析为绝对路径
+                let path = std::path::Path::new(raw_path);
+                let abs_path = if path.is_relative() {
+                    std::env::current_dir()
+                        .ok()
+                        .map(|cwd| cwd.join(path))
+                        .unwrap_or_else(|| path.to_path_buf())
+                } else {
+                    path.to_path_buf()
+                };
                 if let Some(window) = app.get_webview_window("main") {
-                    let escaped_path = path.replace('\\', "\\\\").replace('\'', "\\'");
+                    let path_str = abs_path.to_string_lossy().to_string();
+                    let escaped_path = path_str.replace('\\', "\\\\").replace('\'', "\\'");
                     let _ = window.eval(&format!(
                         "setTimeout(() => window.__ZEPHYR_CLI_FILE__ = '{}', 100);",
                         escaped_path
