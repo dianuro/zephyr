@@ -2,12 +2,9 @@ use serde::Serialize;
 use std::fs;
 use std::path::Path;
 
-use crate::parser::markdown::{self, MarkdownResult, OpenFileResult};
-
-/// 应用状态，包含 Markdown 解析器
-pub struct AppState {
-    // 未来可以在这里缓存解析器或其他资源
-}
+use crate::parser::markdown::{self, OpenFileResult};
+use crate::watcher::FileWatcher;
+use tauri::{AppHandle, State};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FileEntry {
@@ -25,9 +22,21 @@ pub struct FileTree {
 
 /// 打开并渲染 Markdown 文件，同时返回原始内容供前端缓存
 #[tauri::command]
-pub fn open_file(path: String, is_dark: bool) -> Result<OpenFileResult, String> {
+pub fn open_file(
+    path: String,
+    is_dark: bool,
+    app: AppHandle,
+    watcher: State<'_, FileWatcher>,
+) -> Result<OpenFileResult, String> {
     let resolved = resolve_path(&path);
-    let content = fs::read_to_string(&resolved).map_err(|e| format!("无法读取文件: {}", e))?;
+    let result = open_file_inner(&resolved, is_dark)?;
+    let _ = watcher.watch(&resolved.to_string_lossy(), app);
+    Ok(result)
+}
+
+/// open_file 的内部实现（不依赖 Tauri，可用于单元测试）
+pub fn open_file_inner(path: &std::path::Path, is_dark: bool) -> Result<OpenFileResult, String> {
+    let content = fs::read_to_string(path).map_err(|e| format!("无法读取文件: {}", e))?;
     let result = markdown::render(&content, is_dark);
     Ok(OpenFileResult {
         html: result.html,
@@ -187,7 +196,7 @@ mod tests {
         let mut file = fs::File::create(&file_path).unwrap();
         writeln!(file, "# Hello World").unwrap();
 
-        let result = open_file(file_path.to_string_lossy().to_string(), false);
+        let result = open_file_inner(&file_path, false);
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.metadata.title, "Hello World");
@@ -197,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_open_file_not_found() {
-        let result = open_file("/nonexistent/file.md".to_string(), false);
+        let result = open_file_inner(std::path::Path::new("/nonexistent/file.md"), false);
         assert!(result.is_err());
     }
 

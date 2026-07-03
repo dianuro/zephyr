@@ -1,25 +1,33 @@
 use notify::event::EventKind;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{self, Sender};
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
+/// 文件变更监听器（Tauri 托管状态，支持更新目标文件）
 pub struct FileWatcher {
-    current_file: Arc<Mutex<Option<String>>>,
+    stop_tx: Mutex<Option<Sender<()>>>,
 }
 
 impl FileWatcher {
     pub fn new() -> Self {
         Self {
-            current_file: Arc::new(Mutex::new(None)),
+            stop_tx: Mutex::new(None),
         }
     }
 
-    /// 开始监听当前文件所在目录的修改
-    pub fn start_watching(&self, file_path: &str, app_handle: AppHandle) -> Result<(), String> {
+    /// 停止旧的监听并开始监听新文件
+    pub fn watch(&self, file_path: &str, app_handle: AppHandle) -> Result<(), String> {
+        // 1. 停止旧的监听线程
+        if let Ok(mut guard) = self.stop_tx.lock() {
+            if let Some(tx) = guard.take() {
+                let _ = tx.send(());
+            }
+        }
+
         let path = Path::new(file_path);
         let dir = path.parent().unwrap_or(Path::new("."));
         let file_name = path
@@ -28,34 +36,39 @@ impl FileWatcher {
             .to_string_lossy()
             .to_string();
 
-        // 更新当前文件
-        {
-            let mut current = self.current_file.lock().map_err(|e| e.to_string())?;
-            *current = Some(file_path.to_string());
-        }
+        // 2. 创建新的停止通道
+        let (stop_tx, stop_rx) = mpsc::channel::<()>();
 
-        let current_file = self.current_file.clone();
+        // 3. 创建 notify 事件通道
+        let (event_tx, event_rx) = mpsc::channel::<Result<Event, notify::Error>>();
 
-        // 使用 notify 的事件通道
-        let (tx, rx) = mpsc::channel::<Result<Event, notify::Error>>();
-
-        let mut watcher: RecommendedWatcher =
-            Watcher::new(tx, Config::default()).map_err(|e| format!("创建监听器失败: {}", e))?;
+        let mut watcher: RecommendedWatcher = Watcher::new(event_tx, Config::default())
+            .map_err(|e| format!("创建监听器失败: {}", e))?;
 
         watcher
             .watch(dir, RecursiveMode::NonRecursive)
             .map_err(|e| format!("监听目录失败: {}", e))?;
 
-        let file_name_clone = file_name.clone();
+        // 4. 保存新停止信号
+        if let Ok(mut guard) = self.stop_tx.lock() {
+            *guard = Some(stop_tx);
+        }
 
-        // 将 watcher 移入线程，保持其存活
+        let file_name_clone = file_name.clone();
+        let file_path_owned = file_path.to_string();
+
+        // 5. 启动监听线程（选择接收 stop 或 event）
         thread::spawn(move || {
-            // 给文件系统一些时间来稳定
             thread::sleep(Duration::from_millis(300));
 
-            for event in rx {
-                match event {
-                    Ok(event) => {
+            loop {
+                // 优先检查停止信号（非阻塞），再阻塞等待文件事件
+                if stop_rx.try_recv().is_ok() {
+                    break;
+                }
+
+                match event_rx.recv_timeout(Duration::from_millis(500)) {
+                    Ok(Ok(event)) => {
                         let is_modify = matches!(
                             event.kind,
                             EventKind::Modify(_) | EventKind::Create(_)
@@ -73,17 +86,19 @@ impl FileWatcher {
                         });
 
                         if is_target {
-                            let path = current_file.lock().ok().and_then(|f| f.clone());
-                            if let Some(p) = path {
-                                let _ = app_handle.emit("file-changed", p);
-                            }
+                            let _ = app_handle.emit("file-changed", &file_path_owned);
                         }
                     }
-                    Err(_) => {}
+                    Ok(Err(_)) => {}
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        // 超时正常，继续循环以检查停止信号
+                    }
+                    Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        break;
+                    }
                 }
             }
 
-            // watcher 在此被 drop，但线程会一直运行到 rx 关闭
             drop(watcher);
         });
 

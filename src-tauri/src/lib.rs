@@ -1,8 +1,9 @@
 mod commands;
 mod parser;
-mod watcher;
+pub(crate) mod watcher;
 mod theme_config;
 
+use crate::watcher::FileWatcher;
 use serde_json::json;
 use std::sync::Mutex;
 use tauri::Manager;
@@ -36,6 +37,7 @@ pub fn run() {
             light: Mutex::new(light),
             dark: Mutex::new(dark),
         })
+        .manage(FileWatcher::new())
         .setup(|app| {
             // 处理 CLI 参数：传递原始路径给前端（open_file 内部会做智能解析）
             let args: Vec<String> = std::env::args().collect();
