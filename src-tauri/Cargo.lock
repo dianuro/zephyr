@@ -5479,6 +5479,7 @@ name = "zephyr"
 version = "0.1.0"
 dependencies = [
  "comrak",
+ "dirs",
  "notify 7.0.0",
  "notify-debouncer-mini",
  "regex",
@@ -5490,6 +5491,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
+ "toml 0.8.2",
  "walkdir",
 ]
 

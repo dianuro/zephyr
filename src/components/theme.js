@@ -20,38 +20,81 @@ const MOON_SVG = `<svg id="theme-icon" width="18" height="18" viewBox="0 0 18 18
   <path d="M14.5 11.5A6 6 0 0 1 6.5 3.5a6 6 0 1 0 8 8z"/>
 </svg>`;
 
-// 使用独立 CSS 文件，避免组合版 @media prefers-color-scheme 的干扰
-// github-markdown.css（组合版）会同时匹配系统和应用主题，导致冲突
-// 分开加载确保颜色始终跟随 Zephyr 的主题设置
+// github-markdown-css 文件映射
 const MD_LIGHT_CSS = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown-light.css';
 const MD_DARK_CSS = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown-dark.css';
 
-export function initTheme() {
+export async function initTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);
   const isDark = saved === 'dark';
-  // 始终调用 setDark 确保 CSS 主题文件与 data-theme 一致
-  // 避免组合版 github-markdown.css 中 @media prefers-color-scheme 的干扰
-  setDark(isDark);
+  await setDark(isDark);
 
   document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
 }
 
-function toggleTheme() {
+async function toggleTheme() {
   const isDark = !state.darkMode;
-  setDark(isDark);
+  await setDark(isDark);
   localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
 }
 
-function setDark(dark) {
+async function setDark(dark) {
   state.darkMode = dark;
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
 
-  // 切换 markdown 内容区的样式表
+  // 1. 切换 markdown 内容区的样式表
   const mdLink = document.getElementById('md-theme-css');
   if (mdLink) {
     mdLink.href = dark ? MD_DARK_CSS : MD_LIGHT_CSS;
   }
 
-  // 更新主题图标
-  document.getElementById('theme-icon').outerHTML = dark ? SUN_SVG : MOON_SVG;
+  // 2. 从 Rust 后端加载主题配置，应用到 CSS 变量
+  try {
+    const { invoke } = window.__TAURI__.core;
+    const config = await invoke('get_theme_config', { isDark: dark });
+
+    // 将配置映射为 CSS 自定义属性
+    applyConfig(config);
+  } catch (e) {
+    console.warn('无法加载主题配置:', e);
+  }
+
+  // 3. 更新主题图标
+  const themeIcon = document.getElementById('theme-icon');
+  if (themeIcon) {
+    themeIcon.outerHTML = dark ? SUN_SVG : MOON_SVG;
+  }
+}
+
+function applyConfig(cfg) {
+  const root = document.documentElement;
+
+  // app
+  root.style.setProperty('--bg-primary', cfg.app.background);
+  root.style.setProperty('--bg-secondary', cfg.app.sidebar_bg);
+  root.style.setProperty('--bg-sidebar', cfg.app.sidebar_bg);
+  root.style.setProperty('--bg-toolbar', cfg.app.toolbar_bg);
+  root.style.setProperty('--bg-content', cfg.app.content_bg);
+  root.style.setProperty('--bg-hover', cfg.app.hover_bg);
+
+  // text
+  root.style.setProperty('--text-primary', cfg.text.primary);
+  root.style.setProperty('--text-secondary', cfg.text.secondary);
+  root.style.setProperty('--text-muted', cfg.text.muted);
+
+  // border
+  root.style.setProperty('--border-color', cfg.border.default);
+  root.style.setProperty('--border-muted', cfg.border.muted);
+
+  // accent
+  root.style.setProperty('--accent', cfg.accent.default);
+  root.style.setProperty('--accent-hover', cfg.accent.hover);
+
+  // scrollbar
+  root.style.setProperty('--scrollbar-thumb', cfg.scrollbar.thumb);
+  root.style.setProperty('--scrollbar-thumb-hover', cfg.scrollbar.thumb_hover);
+
+  // search
+  root.style.setProperty('--search-highlight-bg', cfg.search.highlight_bg);
+  root.style.setProperty('--search-active-bg', cfg.search.active_bg);
 }

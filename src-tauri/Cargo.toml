@@ -30,6 +30,8 @@ notify-debouncer-mini = "0.4"
 walkdir = "2"
 regex = "1"
 same-file = "1"
+toml = "0.8"
+dirs = "6"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

@@ -40,10 +40,12 @@ pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {
     options.render.full_info_string = true;
     options.render.unsafe_ = false;
 
-    // 使用 comrak 内置的 SyntectAdapter，主题跟随应用主题
-    let theme = if is_dark { "Solarized (dark)" } else { "InspiredGitHub" };
+    // 从主题配置读取语法高亮主题名称
+    // 注意：这里直接使用默认值，完整方案需要将 config 传入
+    // 对于 CLI 启动的场景，从配置目录读取
+    let theme_name = get_syntax_theme(is_dark);
     let syntax_highlighter = SyntectAdapterBuilder::new()
-        .theme(theme)
+        .theme(&theme_name)
         .build();
 
     let mut plugins = Plugins::default();
@@ -158,6 +160,12 @@ fn parse_headings(items: &[(u8, String)], start: usize, parent_level: u8) -> (Ve
     }
 
     (headings, pos - start)
+}
+
+/// 从配置文件中读取语法高亮主题名称
+pub fn get_syntax_theme(is_dark: bool) -> String {
+    let config = crate::theme_config::get_config(is_dark);
+    config.syntax.theme
 }
 
 /// 统计单词数
