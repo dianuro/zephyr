@@ -25,9 +25,9 @@ pub struct FileTree {
 
 /// 打开并渲染 Markdown 文件
 #[tauri::command]
-pub fn open_file(path: String) -> Result<MarkdownResult, String> {
+pub fn open_file(path: String, is_dark: bool) -> Result<MarkdownResult, String> {
     let content = fs::read_to_string(&path).map_err(|e| format!("无法读取文件: {}", e))?;
-    let result = markdown::render(&content);
+    let result = markdown::render(&content, is_dark);
     Ok(result)
 }
 
@@ -142,7 +142,7 @@ mod tests {
         let mut file = fs::File::create(&file_path).unwrap();
         writeln!(file, "# Hello World").unwrap();
 
-        let result = open_file(file_path.to_string_lossy().to_string());
+        let result = open_file(file_path.to_string_lossy().to_string(), false);
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.metadata.title, "Hello World");
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn test_open_file_not_found() {
-        let result = open_file("/nonexistent/file.md".to_string());
+        let result = open_file("/nonexistent/file.md".to_string(), false);
         assert!(result.is_err());
     }
 

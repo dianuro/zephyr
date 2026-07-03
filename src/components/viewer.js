@@ -5,7 +5,8 @@ import { renderFileTree } from './sidebar.js';
 export async function openFile(path) {
   try {
     const { invoke } = window.__TAURI__.core;
-    const result = await invoke('open_file', { path });
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const result = await invoke('open_file', { path, isDark });
 
     state.currentFile = path;
     state.currentHtml = result.html;

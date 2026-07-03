@@ -25,7 +25,8 @@ pub struct MarkdownResult {
 }
 
 /// 渲染 Markdown 为 HTML
-pub fn render(markdown: &str) -> MarkdownResult {
+/// `is_dark` 控制代码语法高亮的主题（亮色/暗色）
+pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {
     let arena = Arena::new();
 
     let mut options = Options::default();
@@ -39,9 +40,10 @@ pub fn render(markdown: &str) -> MarkdownResult {
     options.render.full_info_string = true;
     options.render.unsafe_ = false;
 
-    // 使用 comrak 内置的 SyntectAdapter（InspiredGitHub 主题）
+    // 使用 comrak 内置的 SyntectAdapter，主题跟随应用主题
+    let theme = if is_dark { "Solarized (dark)" } else { "InspiredGitHub" };
     let syntax_highlighter = SyntectAdapterBuilder::new()
-        .theme("InspiredGitHub")
+        .theme(theme)
         .build();
 
     let mut plugins = Plugins::default();
@@ -199,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_render_basic_markdown() {
-        let result = render("# Hello\n\nThis is **bold** text.");
+        let result = render("# Hello\n\nThis is **bold** text.", false);
         assert!(result.html.contains("Hello"));
         assert!(result.html.contains("<strong") || result.html.contains("<b"));
         assert_eq!(result.metadata.title, "Hello");
@@ -208,15 +210,14 @@ mod tests {
 
     #[test]
     fn test_render_code_block() {
-        let result = render("```rust\nfn main() {}\n```");
+        let result = render("```rust\nfn main() {}\n```", false);
         assert!(result.html.contains("<pre") && result.html.contains("</pre>"));
-        // InspiredGitHub theme uses inline styles
         assert!(result.html.contains("style=\""));
     }
 
     #[test]
     fn test_extract_headings() {
-        let result = render("# A\n\n## B\n\n# C");
+        let result = render("# A\n\n## B\n\n# C", false);
         assert_eq!(result.metadata.headings.len(), 2);
         assert_eq!(result.metadata.headings[0].level, 1);
         assert_eq!(result.metadata.headings[0].text, "A");
@@ -227,20 +228,20 @@ mod tests {
 
     #[test]
     fn test_empty_document() {
-        let result = render("");
+        let result = render("", false);
         assert!(result.metadata.title.is_empty());
         assert_eq!(result.metadata.word_count, 0);
     }
 
     #[test]
     fn test_word_count() {
-        let result = render("# Title\n\nHello world foo bar");
+        let result = render("# Title\n\nHello world foo bar", false);
         assert!(result.metadata.word_count > 0);
     }
 
     #[test]
     fn test_table_rendering() {
-        let result = render("| A | B |\n|---|---|\n| 1 | 2 |");
+        let result = render("| A | B |\n|---|---|\n| 1 | 2 |", false);
         assert!(result.html.contains("<table"));
         assert!(result.html.contains("<th"));
         assert!(result.html.contains("<td"));
@@ -248,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_task_list() {
-        let result = render("- [x] done\n- [ ] todo");
+        let result = render("- [x] done\n- [ ] todo", false);
         assert!(result.html.contains("checked") || result.html.contains("checkbox"));
     }
 
@@ -262,16 +263,13 @@ mod tests {
     #[test]
     fn test_nested_headings() {
         let md = "# L1\n\n## L2a\n\n### L3\n\n## L2b";
-        let result = render(md);
-        // Only L1 at top level; L2a, L3, L2b are all nested under L1
+        let result = render(md, false);
         assert_eq!(result.metadata.headings.len(), 1);
         let h1 = &result.metadata.headings[0];
         assert_eq!(h1.text, "L1");
         assert_eq!(h1.level, 1);
-        // L2a and L2b are children of L1
         assert_eq!(h1.children.len(), 2);
         assert_eq!(h1.children[0].text, "L2a");
-        // L3 is child of L2a
         assert_eq!(h1.children[0].children.len(), 1);
         assert_eq!(h1.children[0].children[0].text, "L3");
         assert_eq!(h1.children[1].text, "L2b");
@@ -280,7 +278,7 @@ mod tests {
     #[test]
     fn test_footnotes() {
         let md = "Hello[^1]\n\n[^1]: World";
-        let result = render(md);
+        let result = render(md, false);
         assert!(result.html.contains("footnote") || result.html.contains("sup"));
     }
 }

@@ -67,7 +67,8 @@ function fallbackFileInput() {
         if (typeof content === 'string') {
           try {
             const { invoke } = window.__TAURI__.core;
-            const result = await invoke('render_markdown', { content });
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const result = await invoke('render_markdown', { content, isDark });
             state.currentFile = file.name;
             state.currentHtml = result.html;
             state.metadata = result.metadata;
