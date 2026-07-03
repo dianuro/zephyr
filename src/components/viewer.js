@@ -9,6 +9,7 @@ export async function openFile(path) {
     const result = await invoke('open_file', { path, isDark });
 
     state.currentFile = path;
+    state.currentRaw = result.raw_content;
     state.currentHtml = result.html;
     state.metadata = result.metadata;
 
@@ -176,7 +177,8 @@ export async function reloadCurrentFile() {
   try {
     const { invoke } = window.__TAURI__.core;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const rawContent = await invoke('read_file_content', { path: state.currentFile });
+    // 优先使用缓存原始内容，避免磁盘读取
+    const rawContent = state.currentRaw || await invoke('read_file_content', { path: state.currentFile });
     const result = await invoke('render_markdown', { content: rawContent, isDark });
 
     state.currentHtml = result.html;

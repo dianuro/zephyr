@@ -27,6 +27,14 @@ pub struct MarkdownResult {
     pub metadata: MarkdownMetadata,
 }
 
+/// open_file 的返回结果（包含原始内容，用于前端缓存）
+#[derive(Debug, Clone, Serialize)]
+pub struct OpenFileResult {
+    pub html: String,
+    pub metadata: MarkdownMetadata,
+    pub raw_content: String,
+}
+
 /// 渲染 Markdown 为 HTML
 /// `is_dark` 控制代码语法高亮的主题（亮色/暗色）
 pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {

@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::fs;
 use std::path::Path;
 
-use crate::parser::markdown::{self, MarkdownResult};
+use crate::parser::markdown::{self, MarkdownResult, OpenFileResult};
 
 /// 应用状态，包含 Markdown 解析器
 pub struct AppState {
@@ -23,13 +23,17 @@ pub struct FileTree {
     pub current_dir: String,
 }
 
-/// 打开并渲染 Markdown 文件
+/// 打开并渲染 Markdown 文件，同时返回原始内容供前端缓存
 #[tauri::command]
-pub fn open_file(path: String, is_dark: bool) -> Result<MarkdownResult, String> {
+pub fn open_file(path: String, is_dark: bool) -> Result<OpenFileResult, String> {
     let resolved = resolve_path(&path);
     let content = fs::read_to_string(&resolved).map_err(|e| format!("无法读取文件: {}", e))?;
     let result = markdown::render(&content, is_dark);
-    Ok(result)
+    Ok(OpenFileResult {
+        html: result.html,
+        metadata: result.metadata,
+        raw_content: content,
+    })
 }
 
 /// 智能路径解析：处理 dev 模式下 cwd=src-tauri/ 的问题
