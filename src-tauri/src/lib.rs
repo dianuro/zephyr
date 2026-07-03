@@ -41,23 +41,22 @@ pub fn run() {
             let args: Vec<String> = std::env::args().collect();
             if args.len() > 1 {
                 let raw_path = &args[1];
-                // 将相对路径解析为绝对路径
-                let path = std::path::Path::new(raw_path);
-                let abs_path = if path.is_relative() {
-                    std::env::current_dir()
-                        .ok()
-                        .map(|cwd| cwd.join(path))
-                        .unwrap_or_else(|| path.to_path_buf())
-                } else {
-                    path.to_path_buf()
-                };
-                if let Some(window) = app.get_webview_window("main") {
-                    let path_str = abs_path.to_string_lossy().to_string();
-                    let escaped_path = path_str.replace('\\', "\\\\").replace('\'', "\\'");
-                    let _ = window.eval(&format!(
-                        "setTimeout(() => window.__ZEPHYR_CLI_FILE__ = '{}', 100);",
-                        escaped_path
-                    ));
+                // 将路径解析为规范化的绝对路径
+                let abs_path = std::path::Path::new(raw_path).canonicalize();
+                match abs_path {
+                    Ok(abs_path) => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let path_str = abs_path.to_string_lossy().to_string();
+                            let escaped_path = path_str.replace('\\', "\\\\").replace('\'', "\\'");
+                            let _ = window.eval(&format!(
+                                "setTimeout(() => window.__ZEPHYR_CLI_FILE__ = '{}', 100);",
+                                escaped_path
+                            ));
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[zephyr] 无法解析路径 '{}': {}", raw_path, e);
+                    }
                 }
             }
             Ok(())
