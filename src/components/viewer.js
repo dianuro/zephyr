@@ -155,10 +155,10 @@ export function initExternalLinks() {
 async function openInBrowser(url) {
   try {
     const { invoke } = window.__TAURI__.core;
-    await invoke('plugin:opener|open_url', { url });
+    await invoke('plugin:opener|open_url', { url, with: null });
   } catch (e) {
     console.warn('打开外部链接失败:', e);
     // 回退：使用 window.open
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener');
   }
 }
