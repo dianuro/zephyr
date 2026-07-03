@@ -18,6 +18,7 @@ const CHEVRON_DOWN = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none
 // ====== 树节点存储 ======
 // node: { key, name, path, isDir, expanded, children (array of keys), loaded }
 const nodes = new Map();
+let treeRoot = null; // 当前树根目录路径
 
 // ====== 初始化 ======
 export function initSidebar() {
@@ -111,13 +112,26 @@ function baseName(filePath) {
   return normalized.substring(idx + 1) || filePath;
 }
 
-/** 以 filePath 所在目录为根重建文件树 */
+/** 确保文件树已构建。首次调用建树，之后只更新高亮。根目录永远不变 */
 export async function buildFileTree(filePath) {
-  nodes.clear();
+  if (treeRoot !== null) {
+    updateActiveFile(filePath);
+    return;
+  }
   const dirPath = parentDir(filePath);
+  nodes.clear();
+  treeRoot = dirPath;
   const key = await ensureChildren(dirPath, null);
   renderTree();
-  return key;
+  updateActiveFile(filePath);
+}
+
+/** 更新当前高亮的文件，不重建树 */
+export function updateActiveFile(filePath) {
+  const items = document.querySelectorAll('.tree-item');
+  for (const item of items) {
+    item.classList.toggle('active', item.dataset.path === filePath);
+  }
 }
 
 /** 确保节点已加载子节点，返回节点 key */
