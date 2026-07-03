@@ -124,6 +124,31 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ====== 主题切换后重新渲染 ======
+
+/** 切换主题后重新渲染当前文件（刷新 syntect 行内颜色） */
+export async function reloadCurrentFile() {
+  if (!state.currentFile) return;
+  try {
+    const { invoke } = window.__TAURI__.core;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const rawContent = await invoke('read_file_content', { path: state.currentFile });
+    const result = await invoke('render_markdown', { content: rawContent, isDark });
+
+    state.currentHtml = result.html;
+    state.metadata = result.metadata;
+
+    const contentEl = document.getElementById('content');
+    contentEl.innerHTML = result.html;
+
+    renderOutline(result.metadata.headings);
+    await renderMath();
+    renderDiagrams();
+  } catch (e) {
+    console.warn('主题切换后重新渲染失败:', e);
+  }
+}
+
 // ====== 外部链接处理 ======
 
 /** 初始化外部链接拦截（事件委托，只绑一次） */

@@ -1,4 +1,5 @@
 import state from '../state.js';
+import { reloadCurrentFile } from './viewer.js';
 
 const STORAGE_KEY = 'zephyr-theme';
 
@@ -64,6 +65,9 @@ async function setDark(dark) {
   if (themeIcon) {
     themeIcon.outerHTML = dark ? SUN_SVG : MOON_SVG;
   }
+
+  // 4. 重新渲染当前文件（刷新 syntect 行内颜色）
+  await reloadCurrentFile();
 }
 
 function applyConfig(cfg) {
