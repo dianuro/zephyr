@@ -22,7 +22,6 @@ export function initSidebar() {
 export function toggleSidebar() {
   state.sidebarVisible = !state.sidebarVisible;
   document.getElementById('sidebar').classList.toggle('hidden', !state.sidebarVisible);
-  document.getElementById('toggle-sidebar').textContent = state.sidebarVisible ? '✕' : '☰';
 }
 
 function switchTab(tab) {
