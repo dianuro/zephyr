@@ -37,26 +37,16 @@ pub fn run() {
             dark: Mutex::new(dark),
         })
         .setup(|app| {
-            // 处理 CLI 参数：如果提供了文件路径，在页面加载后打开
+            // 处理 CLI 参数：传递原始路径给前端（open_file 内部会做智能解析）
             let args: Vec<String> = std::env::args().collect();
             if args.len() > 1 {
                 let raw_path = &args[1];
-                // 将路径解析为规范化的绝对路径
-                let abs_path = std::path::Path::new(raw_path).canonicalize();
-                match abs_path {
-                    Ok(abs_path) => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let path_str = abs_path.to_string_lossy().to_string();
-                            let escaped_path = path_str.replace('\\', "\\\\").replace('\'', "\\'");
-                            let _ = window.eval(&format!(
-                                "setTimeout(() => window.__ZEPHYR_CLI_FILE__ = '{}', 100);",
-                                escaped_path
-                            ));
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("[zephyr] 无法解析路径 '{}': {}", raw_path, e);
-                    }
+                if let Some(window) = app.get_webview_window("main") {
+                    let escaped_path = raw_path.replace('\\', "\\\\").replace('\'', "\\'");
+                    let _ = window.eval(&format!(
+                        "setTimeout(() => window.__ZEPHYR_CLI_FILE__ = '{}', 100);",
+                        escaped_path
+                    ));
                 }
             }
             Ok(())

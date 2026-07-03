@@ -26,9 +26,50 @@ pub struct FileTree {
 /// 打开并渲染 Markdown 文件
 #[tauri::command]
 pub fn open_file(path: String, is_dark: bool) -> Result<MarkdownResult, String> {
-    let content = fs::read_to_string(&path).map_err(|e| format!("无法读取文件: {}", e))?;
+    let resolved = resolve_path(&path);
+    let content = fs::read_to_string(&resolved).map_err(|e| format!("无法读取文件: {}", e))?;
     let result = markdown::render(&content, is_dark);
     Ok(result)
+}
+
+/// 智能路径解析：处理 dev 模式下 cwd=src-tauri/ 的问题
+fn resolve_path(path: &str) -> std::path::PathBuf {
+    let p = std::path::Path::new(path);
+
+    // 1. 直接 canonicalize（绝对路径 / 已存在的相对路径）
+    if let Ok(abs) = p.canonicalize() {
+        return abs;
+    }
+
+    // 2. 如果是相对路径，拼接 current_dir 再试
+    if p.is_relative() {
+        if let Ok(cwd) = std::env::current_dir() {
+            // 2a. cwd + path
+            let candidate = cwd.join(p);
+            if candidate.exists() {
+                if let Ok(abs) = candidate.canonicalize() {
+                    return abs;
+                }
+                return candidate;
+            }
+
+            // 2b. dev 模式回退：cwd=src-tauri/ 时，父目录 = 项目根目录
+            if cwd.file_name().map(|n| n == "src-tauri").unwrap_or(false) {
+                if let Some(parent) = cwd.parent() {
+                    let candidate = parent.join(p);
+                    if candidate.exists() {
+                        if let Ok(abs) = candidate.canonicalize() {
+                            return abs;
+                        }
+                        return candidate;
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. 最后的回退：直接用原路径
+    p.to_path_buf()
 }
 
 /// 读取目录中的文件和子目录（深度 2 层）
