@@ -1,7 +1,10 @@
 use comrak::nodes::{AstNode, NodeValue};
 use comrak::plugins::syntect::SyntectAdapterBuilder;
 use comrak::{format_html_with_plugins, parse_document, Arena, Options, Plugins};
+use regex::Regex;
 use serde::Serialize;
+use std::collections::HashSet;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Heading {
@@ -39,6 +42,7 @@ pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {
     options.render.github_pre_lang = true;
     options.render.full_info_string = true;
     options.render.unsafe_ = false;
+    options.extension.header_ids = Some(String::new());
 
     // 从主题配置读取语法高亮主题名称
     // 注意：这里直接使用默认值，完整方案需要将 config 传入
@@ -53,8 +57,9 @@ pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {
 
     let root = parse_document(&arena, markdown, &options);
 
-    // 提取标题结构
-    let headings = extract_headings(root);
+    // 提取标题结构（与 comrak 共享 ID 跟踪，确保 DOM ID 一致）
+    let mut used_ids = HashSet::new();
+    let headings = extract_headings(root, &mut used_ids);
     let title = headings
         .first()
         .map(|h| h.text.clone())
@@ -78,9 +83,9 @@ pub fn render(markdown: &str, is_dark: bool) -> MarkdownResult {
 }
 
 /// 从 AST 中提取标题结构，构建嵌套树
-fn extract_headings<'a>(node: &'a AstNode<'a>) -> Vec<Heading> {
+fn extract_headings<'a>(node: &'a AstNode<'a>, used: &mut HashSet<String>) -> Vec<Heading> {
     let flat = collect_all_headings(node);
-    build_nested_tree(&flat)
+    build_nested_tree(&flat, used)
 }
 
 fn collect_all_headings<'a>(node: &'a AstNode<'a>) -> Vec<(u8, String)> {
@@ -118,15 +123,20 @@ fn extract_heading_text<'a>(node: &'a AstNode<'a>) -> String {
 }
 
 /// 将扁平的标题列表按层级构建为嵌套树
-fn build_nested_tree(flat: &[(u8, String)]) -> Vec<Heading> {
+fn build_nested_tree(flat: &[(u8, String)], used: &mut HashSet<String>) -> Vec<Heading> {
     let items: Vec<(u8, String)> = flat.to_vec();
-    let (headings, _) = parse_headings(&items, 0, 0);
+    let (headings, _) = parse_headings(&items, 0, 0, used);
     headings
 }
 
 /// 递归解析 headings：从 start 开始，读取所有 level > parent_level 的项
 /// 返回 (解析出的 headings, 消耗的项数)
-fn parse_headings(items: &[(u8, String)], start: usize, parent_level: u8) -> (Vec<Heading>, usize) {
+fn parse_headings(
+    items: &[(u8, String)],
+    start: usize,
+    parent_level: u8,
+    used: &mut HashSet<String>,
+) -> (Vec<Heading>, usize) {
     let mut headings = Vec::new();
     let mut pos = start;
 
@@ -136,11 +146,11 @@ fn parse_headings(items: &[(u8, String)], start: usize, parent_level: u8) -> (Ve
             break;
         }
 
-        let id = slugify(text);
+        let id = anchorize_id(text, used);
 
         // 检查下一个项是否是子标题
         let (children, consumed) = if pos + 1 < items.len() && items[pos + 1].0 > *level {
-            parse_headings(items, pos + 1, *level)
+            parse_headings(items, pos + 1, *level, used)
         } else {
             (Vec::new(), 0)
         };
@@ -173,34 +183,36 @@ fn count_words(text: &str) -> u32 {
     text.split_whitespace().count() as u32
 }
 
-/// 生成 GitHub 风格的 anchor id
-fn slugify(text: &str) -> String {
-    let mut slug = String::new();
-    let mut prev_was_hyphen = false;
+/// 生成与 comrak Anchorizer::anchorize 完全一致的 anchor ID
+fn anchorize_id(text: &str, used: &mut HashSet<String>) -> String {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    let rejected_chars =
+        RE.get_or_init(|| Regex::new(r"[^\p{L}\p{M}\p{N}\p{Pc} -]").unwrap());
 
-    for c in text.to_lowercase().chars() {
-        if c.is_alphanumeric() || c == '-' || c == '_' {
-            slug.push(c);
-            prev_was_hyphen = c == '-';
-        } else if c.is_whitespace() || c == '.' || c == ',' || c == '!' || c == '?' {
-            if !prev_was_hyphen && !slug.is_empty() {
-                slug.push('-');
-                prev_was_hyphen = true;
-            }
-        } else if c == '&' {
-            if !prev_was_hyphen && !slug.is_empty() {
-                slug.push('-');
-                prev_was_hyphen = true;
-            }
+    // 必须与 comrak Anchorizer::anchorize 算法完全一致：
+    // 1. 转小写
+    // 2. 移除所有非 [\p{L}\p{M}\p{N}\p{Pc} -] 字符
+    // 3. 空格替换为连字符
+    // 4. 处理重复（追加 -1, -2, ...）
+    let mut id = text.to_lowercase();
+    id = rejected_chars.replace_all(&id, "").to_string();
+    id = id.replace(' ', "-");
+
+    let mut uniq: u32 = 0;
+    let result = loop {
+        let anchor = if uniq == 0 {
+            id.clone()
+        } else {
+            format!("{}-{}", id, uniq)
+        };
+        if !used.contains(&anchor) {
+            break anchor;
         }
-    }
+        uniq += 1;
+    };
 
-    let slug = slug.trim_matches('-').to_string();
-    if slug.is_empty() {
-        "section".to_string()
-    } else {
-        slug
-    }
+    used.insert(result.clone());
+    result
 }
 
 #[cfg(test)]
@@ -262,10 +274,16 @@ mod tests {
     }
 
     #[test]
-    fn test_slugify() {
-        assert_eq!(slugify("Hello World"), "hello-world");
-        assert_eq!(slugify("Foo & Bar"), "foo-bar");
-        assert_eq!(slugify("  spaces  "), "spaces");
+    fn test_anchorize_id() {
+        let mut used = HashSet::new();
+        // comrak 算法：& 被移除后留下两个空格，变成两个连字符
+        assert_eq!(anchorize_id("Foo & Bar", &mut used), "foo--bar");
+        assert_eq!(anchorize_id("Hello World", &mut used), "hello-world");
+        // 重复标题触发生成 -1
+        assert_eq!(anchorize_id("Hello World", &mut used), "hello-world-1");
+        // 新的 HashSet 从头开始计数
+        let mut used2 = HashSet::new();
+        assert_eq!(anchorize_id("Hello World", &mut used2), "hello-world");
     }
 
     #[test]
@@ -290,3 +308,5 @@ mod tests {
         assert!(result.html.contains("footnote") || result.html.contains("sup"));
     }
 }
+
+
